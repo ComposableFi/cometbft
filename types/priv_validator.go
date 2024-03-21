@@ -16,6 +16,7 @@ type PrivValidator interface {
 	GetPubKey() (crypto.PubKey, error)
 
 	SignVote(chainID string, vote *cmtproto.Vote) error
+	SignVoteAbiEncoded(chainID string, vote []byte) error
 	SignProposal(chainID string, proposal *cmtproto.Proposal) error
 }
 
@@ -85,6 +86,20 @@ func (pv MockPV) SignVote(chainID string, vote *cmtproto.Vote) error {
 	return nil
 }
 
+func (pv *ErroringMockPV) SignVoteAbiEncoded(chainID string, []byte) error {
+	useChainID := chainID
+	if pv.breakVoteSigning {
+		useChainID = "incorrect-chain-id"
+	}
+
+	signBytes := VoteSignBytesAbiEncoded(useChainID, vote)
+	sig, err := pv.PrivKey.Sign(signBytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Implements PrivValidator.
 func (pv MockPV) SignProposal(chainID string, proposal *cmtproto.Proposal) error {
 	useChainID := chainID
@@ -130,6 +145,11 @@ var ErroringMockPVErr = errors.New("erroringMockPV always returns an error")
 
 // Implements PrivValidator.
 func (pv *ErroringMockPV) SignVote(chainID string, vote *cmtproto.Vote) error {
+	return ErroringMockPVErr
+}
+
+// Implements PrivValidator.
+func (pv *ErroringMockPV) SignVoteAbiEncoded(chainID string, vote []byte) error {
 	return ErroringMockPVErr
 }
 

@@ -102,6 +102,7 @@ message Vote {
   bytes validator_address = 6;
   int32 validator_index   = 7;
   bytes signature         = 8;
+  bytes signature_abi_encoded         = 9;
 }
 
 // Commit contains the evidence that a block was committed by a set of validators.

@@ -147,12 +147,13 @@ func (lss *FilePVLastSignState) Save() {
 // It includes the LastSignature and LastSignBytes so we don't lose the signature
 // if the process crashes after signing but before the resulting consensus message is processed.
 type FilePV struct {
-	Key           FilePVKey
-	LastSignState FilePVLastSignState
+	Key                     FilePVKey
+	LastSignState           FilePVLastSignState
+	LastSignStateAbiEncoded FilePVLastSignState
 }
 
 // NewFilePV generates a new validator from the given key and paths.
-func NewFilePV(privKey crypto.PrivKey, keyFilePath, stateFilePath string) *FilePV {
+func NewFilePV(privKey crypto.PrivKey, keyFilePath, stateFilePath string, stateFilePathAbiEncoded string) *FilePV {
 	return &FilePV{
 		Key: FilePVKey{
 			Address:  privKey.PubKey().Address(),
@@ -164,30 +165,34 @@ func NewFilePV(privKey crypto.PrivKey, keyFilePath, stateFilePath string) *FileP
 			Step:     stepNone,
 			filePath: stateFilePath,
 		},
+		LastSignStateAbiEncoded: FilePVLastSignState{
+			Step:     stepNone,
+			filePath: stateFilePathAbiEncoded,
+		},
 	}
 }
 
 // GenFilePV generates a new validator with randomly generated private key
 // and sets the filePaths, but does not call Save().
-func GenFilePV(keyFilePath, stateFilePath string) *FilePV {
-	return NewFilePV(ed25519.GenPrivKey(), keyFilePath, stateFilePath)
+func GenFilePV(keyFilePath, stateFilePath string, stateFilePathAbiEncoded string) *FilePV {
+	return NewFilePV(ed25519.GenPrivKey(), keyFilePath, stateFilePath, stateFilePathAbiEncoded)
 }
 
 // LoadFilePV loads a FilePV from the filePaths.  The FilePV handles double
 // signing prevention by persisting data to the stateFilePath.  If either file path
 // does not exist, the program will exit.
-func LoadFilePV(keyFilePath, stateFilePath string) *FilePV {
-	return loadFilePV(keyFilePath, stateFilePath, true)
+func LoadFilePV(keyFilePath, stateFilePath string, stateFilePathAbiEncoded string) *FilePV {
+	return loadFilePV(keyFilePath, stateFilePath, stateFilePathAbiEncoded, true)
 }
 
 // LoadFilePVEmptyState loads a FilePV from the given keyFilePath, with an empty LastSignState.
 // If the keyFilePath does not exist, the program will exit.
-func LoadFilePVEmptyState(keyFilePath, stateFilePath string) *FilePV {
-	return loadFilePV(keyFilePath, stateFilePath, false)
+func LoadFilePVEmptyState(keyFilePath, stateFilePath string, stateFilePathAbiEncoded string) *FilePV {
+	return loadFilePV(keyFilePath, stateFilePath, stateFilePathAbiEncoded, false)
 }
 
 // If loadState is true, we load from the stateFilePath. Otherwise, we use an empty LastSignState.
-func loadFilePV(keyFilePath, stateFilePath string, loadState bool) *FilePV {
+func loadFilePV(keyFilePath, stateFilePath string, stateFilePathAbiEncoded string, loadState bool) *FilePV {
 	keyJSONBytes, err := os.ReadFile(keyFilePath)
 	if err != nil {
 		cmtos.Exit(err.Error())
@@ -226,12 +231,12 @@ func loadFilePV(keyFilePath, stateFilePath string, loadState bool) *FilePV {
 
 // LoadOrGenFilePV loads a FilePV from the given filePaths
 // or else generates a new one and saves it to the filePaths.
-func LoadOrGenFilePV(keyFilePath, stateFilePath string) *FilePV {
+func LoadOrGenFilePV(keyFilePath, stateFilePath string, stateFilePathAbiEncoded string) *FilePV {
 	var pv *FilePV
 	if cmtos.FileExists(keyFilePath) {
-		pv = LoadFilePV(keyFilePath, stateFilePath)
+		pv = LoadFilePV(keyFilePath, stateFilePath, stateFilePathAbiEncoded)
 	} else {
-		pv = GenFilePV(keyFilePath, stateFilePath)
+		pv = GenFilePV(keyFilePath, stateFilePath, stateFilePathAbiEncoded)
 		pv.Save()
 	}
 	return pv
@@ -312,6 +317,48 @@ func (pv *FilePV) signVote(chainID string, vote *cmtproto.Vote) error {
 	}
 
 	signBytes := types.VoteSignBytes(chainID, vote)
+
+	// We might crash before writing to the wal,
+	// causing us to try to re-sign for the same HRS.
+	// If signbytes are the same, use the last signature.
+	// If they only differ by timestamp, use last timestamp and signature
+	// Otherwise, return error
+	if sameHRS {
+		if bytes.Equal(signBytes, lss.SignBytes) {
+			vote.Signature = lss.Signature
+		} else if timestamp, ok := checkVotesOnlyDifferByTimestamp(lss.SignBytes, signBytes); ok {
+			vote.Timestamp = timestamp
+			vote.Signature = lss.Signature
+		} else {
+			err = fmt.Errorf("conflicting data")
+		}
+		return err
+	}
+
+	// It passed the checks. Sign the vote
+	sig, err := pv.Key.PrivKey.Sign(signBytes)
+	if err != nil {
+		return err
+	}
+	pv.saveSigned(height, round, step, signBytes, sig)
+	vote.Signature = sig
+	return nil
+}
+
+// signVote checks if the vote is good to sign and sets the vote signature.
+// It may need to set the timestamp as well if the vote is otherwise the same as
+// a previously signed vote (ie. we crashed after signing but before the vote hit the WAL).
+func (pv *FilePV) signVoteAbiEncoded(chainID string, vote *cmtproto.Vote) error {
+	height, round, step := vote.Height, vote.Round, voteToStep(vote)
+
+	lss := pv.LastSignState
+
+	sameHRS, err := lss.CheckHRS(height, round, step)
+	if err != nil {
+		return err
+	}
+
+	signBytes := types.VoteSignBytesAbiEncoded(chainID, vote)
 
 	// We might crash before writing to the wal,
 	// causing us to try to re-sign for the same HRS.

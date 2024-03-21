@@ -26,15 +26,17 @@ func TestGenLoadValidator(t *testing.T) {
 	require.Nil(t, err)
 	tempStateFile, err := os.CreateTemp("", "priv_validator_state_")
 	require.Nil(t, err)
+	tempStateFileAbiEncodedFile, err := os.CreateTemp("", "priv_validator_state_abi_encoded")
+	require.Nil(t, err)
 
-	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name())
+	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name(), tempStateFileAbiEncodedFile.Name())
 
 	height := int64(100)
 	privVal.LastSignState.Height = height
 	privVal.Save()
 	addr := privVal.GetAddress()
 
-	privVal = LoadFilePV(tempKeyFile.Name(), tempStateFile.Name())
+	privVal = LoadFilePV(tempKeyFile.Name(), tempStateFile.Name(), tempStateFileAbiEncodedFile.Name())
 	assert.Equal(addr, privVal.GetAddress(), "expected privval addr to be the same")
 	assert.Equal(height, privVal.LastSignState.Height, "expected privval.LastHeight to have been saved")
 }
@@ -44,8 +46,10 @@ func TestResetValidator(t *testing.T) {
 	require.Nil(t, err)
 	tempStateFile, err := os.CreateTemp("", "priv_validator_state_")
 	require.Nil(t, err)
+	tempStateFileAbiEncodedFile, err := os.CreateTemp("", "priv_validator_state_abi_encoded")
+	require.Nil(t, err)
 
-	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name())
+	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name(), tempStateFileAbiEncodedFile.Name())
 	emptyState := FilePVLastSignState{filePath: tempStateFile.Name()}
 
 	// new priv val has empty state
@@ -75,6 +79,8 @@ func TestLoadOrGenValidator(t *testing.T) {
 	require.Nil(t, err)
 	tempStateFile, err := os.CreateTemp("", "priv_validator_state_")
 	require.Nil(t, err)
+	tempStateFileAbiEncodedFile, err := os.CreateTemp("", "priv_validator_state_abi_encoded")
+	require.Nil(t, err)
 
 	tempKeyFilePath := tempKeyFile.Name()
 	if err := os.Remove(tempKeyFilePath); err != nil {
@@ -84,10 +90,14 @@ func TestLoadOrGenValidator(t *testing.T) {
 	if err := os.Remove(tempStateFilePath); err != nil {
 		t.Error(err)
 	}
+	tempStateFileAbiEncodedPath := tempStateFileAbiEncodedFile.Name()
+	if err := os.Remove(tempStateFileAbiEncodedPath); err != nil {
+		t.Error(err)
+	}
 
-	privVal := LoadOrGenFilePV(tempKeyFilePath, tempStateFilePath)
+	privVal := LoadOrGenFilePV(tempKeyFilePath, tempStateFilePath, tempStateFileAbiEncodedPath)
 	addr := privVal.GetAddress()
-	privVal = LoadOrGenFilePV(tempKeyFilePath, tempStateFilePath)
+	privVal = LoadOrGenFilePV(tempKeyFilePath, tempStateFilePath, tempStateFileAbiEncodedPath)
 	assert.Equal(addr, privVal.GetAddress(), "expected privval addr to be the same")
 }
 
@@ -162,8 +172,10 @@ func TestSignVote(t *testing.T) {
 	require.Nil(t, err)
 	tempStateFile, err := os.CreateTemp("", "priv_validator_state_")
 	require.Nil(t, err)
+	tempStateFileAbiEncodedFile, err := os.CreateTemp("", "priv_validator_state_abi_encoded")
+	require.Nil(t, err)
 
-	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name())
+	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name(), tempStateFileAbiEncodedFile.Name())
 
 	randbytes := cmtrand.Bytes(tmhash.Size)
 	randbytes2 := cmtrand.Bytes(tmhash.Size)
@@ -215,8 +227,10 @@ func TestSignProposal(t *testing.T) {
 	require.Nil(t, err)
 	tempStateFile, err := os.CreateTemp("", "priv_validator_state_")
 	require.Nil(t, err)
+	tempStateFileAbiEncodedFile, err := os.CreateTemp("", "priv_validator_state_abi_encoded")
+	require.Nil(t, err)
 
-	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name())
+	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name(), tempStateFileAbiEncodedFile.Name())
 
 	randbytes := cmtrand.Bytes(tmhash.Size)
 	randbytes2 := cmtrand.Bytes(tmhash.Size)
@@ -263,8 +277,10 @@ func TestDifferByTimestamp(t *testing.T) {
 	require.Nil(t, err)
 	tempStateFile, err := os.CreateTemp("", "priv_validator_state_")
 	require.Nil(t, err)
+	tempStateFileAbiEncodedFile, err := os.CreateTemp("", "priv_validator_state_abi_encoded")
+	require.Nil(t, err)
 
-	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name())
+	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name(), tempStateFileAbiEncodedFile.Name())
 	randbytes := cmtrand.Bytes(tmhash.Size)
 	block1 := types.BlockID{Hash: randbytes, PartSetHeader: types.PartSetHeader{Total: 5, Hash: randbytes}}
 	height, round := int64(10), int32(1)

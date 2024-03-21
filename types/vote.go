@@ -100,6 +100,19 @@ func VoteSignBytes(chainID string, vote *cmtproto.Vote) []byte {
 	return bz
 }
 
+// VoteSignBytesAbiEncoded returns the Ethereum abi-encoding of the canonicalized Vote, for
+// signing. Panics is the marshaling fails.
+//
+// The encoded Protobuf message is varint length-prefixed (using MarshalDelimited)
+// for backwards-compatibility with the Amino encoding, due to e.g. hardware
+// devices that rely on this encoding.
+//
+// See CanonicalizeVote
+func VoteSignBytesAbiEncoded(chainID string, vote []byte) []byte {
+	// TODO
+	return nil
+}
+
 func (vote *Vote) Copy() *Vote {
 	voteCopy := *vote
 	return &voteCopy

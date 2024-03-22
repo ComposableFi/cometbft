@@ -26,7 +26,7 @@ func TestGenLoadValidator(t *testing.T) {
 	require.Nil(t, err)
 	tempStateFile, err := os.CreateTemp("", "priv_validator_state_")
 	require.Nil(t, err)
-	tempStateFileAbiEncodedFile, err := os.CreateTemp("", "priv_validator_state_abi_encoded")
+	// tempStateFileAbiEncodedFile, err := os.CreateTemp("", "priv_validator_state_abi_encoded")
 	require.Nil(t, err)
 
 	privVal := GenFilePV(tempKeyFile.Name(), tempStateFile.Name())

@@ -154,6 +154,8 @@ type FilePV struct {
 
 // NewFilePV generates a new validator from the given key and paths.
 func NewFilePV(privKey crypto.PrivKey, keyFilePath, stateFilePath string) *FilePV {
+	println("NewFilePV")
+	println(keyFilePath)
 	return &FilePV{
 		Key: FilePVKey{
 			Address:  privKey.PubKey().Address(),
@@ -175,6 +177,8 @@ func NewFilePV(privKey crypto.PrivKey, keyFilePath, stateFilePath string) *FileP
 // GenFilePV generates a new validator with randomly generated private key
 // and sets the filePaths, but does not call Save().
 func GenFilePV(keyFilePath, stateFilePath string) *FilePV {
+	println("GenFilePV")
+	println(keyFilePath)
 	return NewFilePV(ed25519.GenPrivKey(), keyFilePath, stateFilePath)
 }
 
@@ -182,17 +186,23 @@ func GenFilePV(keyFilePath, stateFilePath string) *FilePV {
 // signing prevention by persisting data to the stateFilePath.  If either file path
 // does not exist, the program will exit.
 func LoadFilePV(keyFilePath, stateFilePath string) *FilePV {
+	println("LoadFilePV")
+	println(keyFilePath)
 	return loadFilePV(keyFilePath, stateFilePath, true)
 }
 
 // LoadFilePVEmptyState loads a FilePV from the given keyFilePath, with an empty LastSignState.
 // If the keyFilePath does not exist, the program will exit.
 func LoadFilePVEmptyState(keyFilePath, stateFilePath string) *FilePV {
+	println("LoadFilePVEmptyState")
+	println(keyFilePath)
 	return loadFilePV(keyFilePath, stateFilePath, false)
 }
 
 // If loadState is true, we load from the stateFilePath. Otherwise, we use an empty LastSignState.
 func loadFilePV(keyFilePath, stateFilePath string, loadState bool) *FilePV {
+	println("loadFilePV")
+	println(keyFilePath)
 	keyJSONBytes, err := os.ReadFile(keyFilePath)
 	if err != nil {
 		cmtos.Exit(err.Error())
@@ -232,6 +242,8 @@ func loadFilePV(keyFilePath, stateFilePath string, loadState bool) *FilePV {
 // LoadOrGenFilePV loads a FilePV from the given filePaths
 // or else generates a new one and saves it to the filePaths.
 func LoadOrGenFilePV(keyFilePath, stateFilePath string) *FilePV {
+	println("LoadOrGenFilePV")
+	println(keyFilePath)
 	var pv *FilePV
 	if cmtos.FileExists(keyFilePath) {
 		pv = LoadFilePV(keyFilePath, stateFilePath)

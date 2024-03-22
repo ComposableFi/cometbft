@@ -2262,8 +2262,8 @@ func (cs *State) signVote(
 	if err != nil {
 		return vote, err
 	}
-	vAbiEncoded := []byte{}
-	err = cs.privValidator.SignVoteAbiEncoded(cs.state.ChainID, vAbiEncoded)
+	// vAbiEncoded := []byte{}
+	// err = cs.privValidator.SignVoteAbiEncoded(cs.state.ChainID, vAbiEncoded)
 	vote.Signature = v.Signature
 	vote.Timestamp = v.Timestamp
 

@@ -118,6 +118,23 @@ func (b *Block) fillHeader() {
 	}
 }
 
+// fillHeader fills in any remaining header fields that are a function of the block data
+func (b *Block) fillHeaderAbiEncoded() {
+	if b.LastCommitHash == nil {
+		// b.LastCommitHash = b.LastCommit.Hash()
+		// TODO(blas)
+	}
+	if b.DataHash == nil {
+		// b.DataHash = b.Data.Hash()
+		// TODO(blas)
+
+	}
+	if b.EvidenceHash == nil {
+		// b.EvidenceHash = b.Evidence.Hash()
+		// TODO(blas)
+	}
+}
+
 // Hash computes and returns the block hash.
 // If the block is incomplete, block hash is nil for safety.
 func (b *Block) Hash() cmtbytes.HexBytes {
@@ -132,6 +149,22 @@ func (b *Block) Hash() cmtbytes.HexBytes {
 	}
 	b.fillHeader()
 	return b.Header.Hash()
+}
+
+// Hash computes and returns the block hash.
+// If the block is incomplete, block hash is nil for safety.
+func (b *Block) HashAbiEncoded() cmtbytes.HexBytes {
+	if b == nil {
+		return nil
+	}
+	b.mtx.Lock()
+	defer b.mtx.Unlock()
+
+	if b.LastCommit == nil {
+		return nil
+	}
+	b.fillHeaderAbiEncoded()
+	return b.Header.HashAbiEncoded()
 }
 
 // MakePartSet returns a PartSet containing parts of a serialized block.
@@ -472,6 +505,17 @@ func (h *Header) Hash() cmtbytes.HexBytes {
 		cdcEncode(h.EvidenceHash),
 		cdcEncode(h.ProposerAddress),
 	})
+}
+
+// Hash returns the hash of the header.
+// It computes a Merkle tree from the header fields
+// ordered as they appear in the Header.
+// Returns nil if ValidatorHash is missing,
+// since a Header is not valid unless there is
+// a ValidatorsHash (corresponding to the validator set).
+func (h *Header) HashAbiEncoded() cmtbytes.HexBytes {
+	// TODO(blas)
+	return nil
 }
 
 // StringIndented returns an indented string representation of the header.
@@ -1159,14 +1203,15 @@ func (data *EvidenceData) FromProto(eviData *cmtproto.EvidenceList) error {
 
 // BlockID
 type BlockID struct {
-	Hash          cmtbytes.HexBytes `json:"hash"`
-	PartSetHeader PartSetHeader     `json:"parts"`
+	Hash           cmtbytes.HexBytes `json:"hash"`
+	PartSetHeader  PartSetHeader     `json:"parts"`
+	HashAbiEncoded cmtbytes.HexBytes `json:"hash"`
 }
 
 // Equals returns true if the BlockID matches the given BlockID
 func (blockID BlockID) Equals(other BlockID) bool {
 	return bytes.Equal(blockID.Hash, other.Hash) &&
-		blockID.PartSetHeader.Equals(other.PartSetHeader)
+		blockID.PartSetHeader.Equals(other.PartSetHeader) && bytes.Equal(blockID.HashAbiEncoded, other.HashAbiEncoded)
 }
 
 // Key returns a machine-readable string representation of the BlockID
@@ -1184,6 +1229,9 @@ func (blockID BlockID) Key() string {
 func (blockID BlockID) ValidateBasic() error {
 	// Hash can be empty in case of POLBlockID in Proposal.
 	if err := ValidateHash(blockID.Hash); err != nil {
+		return fmt.Errorf("wrong Hash")
+	}
+	if err := ValidateHash(blockID.HashAbiEncoded); err != nil {
 		return fmt.Errorf("wrong Hash")
 	}
 	if err := blockID.PartSetHeader.ValidateBasic(); err != nil {
@@ -1222,8 +1270,9 @@ func (blockID *BlockID) ToProto() cmtproto.BlockID {
 	}
 
 	return cmtproto.BlockID{
-		Hash:          blockID.Hash,
-		PartSetHeader: blockID.PartSetHeader.ToProto(),
+		Hash:           blockID.Hash,
+		PartSetHeader:  blockID.PartSetHeader.ToProto(),
+		HashAbiEncoded: blockID.HashAbiEncoded,
 	}
 }
 
@@ -1242,6 +1291,7 @@ func BlockIDFromProto(bID *cmtproto.BlockID) (*BlockID, error) {
 
 	blockID.PartSetHeader = *ph
 	blockID.Hash = bID.Hash
+	blockID.HashAbiEncoded = bID.HashAbiEncoded
 
 	return blockID, blockID.ValidateBasic()
 }

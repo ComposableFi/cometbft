@@ -185,12 +185,13 @@ func TestBlockString(t *testing.T) {
 
 func makeBlockIDRandom() BlockID {
 	var (
-		blockHash   = make([]byte, tmhash.Size)
-		partSetHash = make([]byte, tmhash.Size)
+		blockHash           = make([]byte, tmhash.Size)
+		blockHashAbiEncoded = make([]byte, tmhash.Size)
+		partSetHash         = make([]byte, tmhash.Size)
 	)
 	rand.Read(blockHash)   //nolint: errcheck // ignore errcheck for read
 	rand.Read(partSetHash) //nolint: errcheck // ignore errcheck for read
-	return BlockID{blockHash, PartSetHeader{123, partSetHash}}
+	return BlockID{blockHash, PartSetHeader{123, partSetHash}, blockHashAbiEncoded}
 }
 
 func makeBlockID(hash []byte, partSetSize uint32, partSetHash []byte) BlockID {

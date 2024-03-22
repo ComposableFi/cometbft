@@ -108,9 +108,11 @@ func VoteSignBytes(chainID string, vote *cmtproto.Vote) []byte {
 // devices that rely on this encoding.
 //
 // See CanonicalizeVote
-func VoteSignBytesAbiEncoded(chainID string, vote []byte) []byte {
+func VoteSignBytesAbiEncoded(chainID string, vote *cmtproto.Vote) []byte {
+	// func VoteSignBytesAbiEncoded(chainID string, vote []byte) []byte {
 	// TODO
-	return nil
+	return VoteSignBytes(chainID, vote)
+	// return nil
 }
 
 func (vote *Vote) Copy() *Vote {

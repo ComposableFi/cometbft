@@ -111,9 +111,11 @@ func (sc *SignerClient) SignVote(chainID string, vote *cmtproto.Vote) error {
 }
 
 // SignVote requests a remote signer to sign a vote
-func (sc *SignerClient) SignVoteAbiEncoded(chainID string, vote []byte) error {
+func (sc *SignerClient) SignVoteAbiEncoded(chainID string, vote *cmtproto.Vote) error {
+	// func (sc *SignerClient) SignVoteAbiEncoded(chainID string, vote []byte) error {
 	//TODO(blas): implement
-	return nil
+	return sc.SignVote(chainID, &cmtproto.Vote{})
+	// return nil
 }
 
 // SignProposal requests a remote signer to sign a proposal

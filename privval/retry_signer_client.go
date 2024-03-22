@@ -79,7 +79,8 @@ func (sc *RetrySignerClient) SignVote(chainID string, vote *cmtproto.Vote) error
 	return fmt.Errorf("exhausted all attempts to sign vote: %w", err)
 }
 
-func (sc *RetrySignerClient) SignVoteAbiEncoded(chainID string, vote []byte) error {
+func (sc *RetrySignerClient) SignVoteAbiEncoded(chainID string, vote *cmtproto.Vote) error {
+	// func (sc *RetrySignerClient) SignVoteAbiEncoded(chainID string, vote []byte) error {
 	var err error
 	for i := 0; i < sc.retries || sc.retries == 0; i++ {
 		err = sc.next.SignVoteAbiEncoded(chainID, vote)
